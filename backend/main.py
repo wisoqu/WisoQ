@@ -16,7 +16,7 @@ import uvicorn
 app = FastAPI()
 chat_history = [] # {'role' : '*assistant/user*', 'content' : prompt}
 
-
+#Will i learn how to use GIT and GITHUB?
 # Authorisation
 
 @app.post('/register', tags=['Auth'], summary='register')
