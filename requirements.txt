@@ -1,0 +1,23 @@
+# Основные зависимости для FastAPI приложения
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+
+# AI модель
+g4f
+
+# JWT авторизация
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# Для обработки форм (если понадобится)
+python-multipart==0.0.6
+
+# CORS middleware (уже включен в FastAPI, но на всякий случай)
+# fastapi уже включает starlette с CORS
+fastapi
+uvicorn
+sqlalchemy
+passlib[bcrypt]
+python-multipart
+authx
