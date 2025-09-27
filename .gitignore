@@ -1,0 +1,55 @@
+# База данных
+*.db
+*.sqlite
+*.sqlite3
+my_db.db
+
+# Виртуальное окружение
+venv/
+env/
+.venv/
+.env/
+
+# Python кеш
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE файлы
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Логи
+*.log
+logs/
+
+# Секретные файлы
+.env
+config.ini
+secrets.json
+
+# Временные файлы
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# g4f кеш и cookies
+cookies/
+.g4f/
+provider_cache.json
+
+# Тренировочные файлы
+training_*.py
+z_project_training/
+
+# Дубликаты и временные файлы
+*_1.py
+gpt_1.py
+
+# Readme без расширения
+readme
