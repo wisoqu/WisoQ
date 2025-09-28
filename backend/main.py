@@ -71,7 +71,7 @@ def wth(payload: TokenPayload = Depends(security.access_token_required)):
 
 
 @app.post('/chats/{chat_name}/chat', tags=['Chat with AI'])
-def chat(data: PromptSchema, username: str, chat_name: str = "New chat", payload: TokenPayload = Depends(security.access_token_required), db: Session = Depends(get_db))
+def chat(data: PromptSchema, username: str, chat_name: str = "New chat", payload: TokenPayload = Depends(security.access_token_required), db: Session = Depends(get_db)):
     username = payload.sub
     db_user = db.query(User).filter(User.username==username).first()
     if not db_user:
@@ -83,14 +83,26 @@ def chat(data: PromptSchema, username: str, chat_name: str = "New chat", payload
         db.commit()
         db.refresh(db_chat)
     
-    new_message = Message(sender=db_user, content=data, chat_id=db_chat.id)
+    new_message = Message(sender=db_user.username, content=data, chat_id=db_chat.id)
     db.add(new_message)
     db.commit()
     db.refresh(new_message)
 
-    chat_history = [el for el in db.query(Message).filter(Message.chat_id == db_chat.id, User.username == db_user.username)]
+    chat_history = []
+    messages = db.query(Message).filter(Message.chat_id == db_chat.id).order_by(Message.created_at.desc()).limit(20).all()
 
+    for message in messages:
+        if message.sender == db_user.username:
+            chat_history.append({'role' : 'user', 'content' : message.content})
+        else:
+            chat_history.append({'role' : 'assistant', 'content' : message.content})
 
+        chat_history.append({'role' : 'assistant', 'content' : data})
+        result = get_response(chat_history)
+        chat_history.append({'role' : 'assistant', 'content' : result})
+    
+
+    return {'result': chat_history[:], 'chat_id' : db_chat.id}
 
 
 
