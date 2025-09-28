@@ -11,12 +11,9 @@ import uvicorn
 
 
 
-
-
 app = FastAPI()
 
 
-#Will i learn how to use GIT and GITHUB?
 # Authorisation
 
 @app.post('/register', tags=['Auth'], summary='register')
@@ -58,15 +55,6 @@ def login(user: RegisterLoginSchema, response: Response, db: Session = Depends(g
 def wth(payload: TokenPayload = Depends(security.access_token_required)):
     return payload.sub
 
-
-
-#chat_history = [] # {'role' : '*assistant/user*', 'content' : prompt}
-#@app.post('/chat', tags=['Main chat'])
-#def chating(data: PromptSchema, payload: TokenPayload = Depends(security.access_token_required)):
-    #chat_history.append({'role' : 'user', 'content' : data.prompt})
-    #result = get_response(chat_history)           # теперь dict {'text','provider'}
-    #chat_history.append({'role' : 'assistant', 'content' : result})
-    #return {'result': result}
 
 
 @app.post('/chats/{chat_name}/chat', tags=['Chat with AI'])
