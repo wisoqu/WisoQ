@@ -4,6 +4,9 @@
 *.sqlite3
 my_db.db
 
+if_need_working_providers.py
+my_db.db
+provider_cache.json
 # Виртуальное окружение
 venv/
 env/
