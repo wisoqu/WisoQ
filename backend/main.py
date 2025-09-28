@@ -69,7 +69,6 @@ def wth(payload: TokenPayload = Depends(security.access_token_required)):
     #return {'result': result}
 
 
-
 @app.post('/chats/{chat_name}/chat', tags=['Chat with AI'])
 def chat(data: PromptSchema, chat_name: str = "New chat", payload: TokenPayload = Depends(security.access_token_required), db: Session = Depends(get_db)):
     username = payload.sub
@@ -78,37 +77,41 @@ def chat(data: PromptSchema, chat_name: str = "New chat", payload: TokenPayload 
     db_user = db.query(User).filter(User.username==username).first()
     if db_user is None:
         raise HTTPException(status_code=404, detail='User is None!')
-    if not db_user:
-        raise HTTPException(status_code=403, detail='Anauthorise!')
+
     db_chat = db.query(Chat).filter(Chat.user_id == db_user.id, Chat.title == chat_name).first()
     if not db_chat:
         db_chat = Chat(title=chat_name, user_id=db_user.id)
         db.add(db_chat)
         db.commit()
         db.refresh(db_chat)
-    if db_chat is None:
-        raise HTTPException(status_code=404, detail='Chat is None!')
-    
-    new_message = Message(sender=db_user.username, content=str(data), chat_id=db_chat.id)
+
+    # Добавляем новое сообщение пользователя в БД
+    new_message = Message(sender=db_user.username, content=str(data.prompt), chat_id=db_chat.id)
     db.add(new_message)
     db.commit()
     db.refresh(new_message)
 
+    # Создаем историю чата, включая только сохраненные сообщения
     chat_history = []
-    messages = db.query(Message).filter(Message.chat_id == db_chat.id).order_by(Message.created_at.desc()).limit(20).all()
-    if messages is None:
-        raise HTTPException(status_code=404, detail='No messages found')
+    messages = db.query(Message).filter(Message.chat_id == db_chat.id).all() #order_by(Message.created_at.desc()).limit(20).all()
+
     for message in messages:
         if str(message.sender) == str(db_user.username):
             chat_history.append({'role' : 'user', 'content' : message.content})
         else:
             chat_history.append({'role' : 'assistant', 'content' : message.content})
-    if chat_history is None:
-        raise HTTPException(status_code=404, detail='No chat history found')
-    chat_history.append({'role' : 'assistant', 'content' : new_message})
+
+    # Получаем ответ от GPT, передав обновленную историю чата
     result = get_response(chat_history)
-    chat_history.append({'role' : 'assistant', 'content' : result})
-    
+
+    # Сохраняем ответ GPT в БД и добавляем его в историю
+    gpt_message = Message(sender='assistant', content=result, chat_id=db_chat.id)
+    db.add(gpt_message)
+    db.commit()
+    db.refresh(gpt_message)
+
+    # Добавляем результат GPT в историю чата
+    #chat_history.append({'role' : 'assistant', 'content' : result})
 
     return {'result': chat_history}
 
