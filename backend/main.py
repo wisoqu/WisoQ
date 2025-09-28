@@ -14,7 +14,7 @@ import uvicorn
 
 
 app = FastAPI()
-chat_history = [] # {'role' : '*assistant/user*', 'content' : prompt}
+
 
 #Will i learn how to use GIT and GITHUB?
 # Authorisation
@@ -60,13 +60,35 @@ def wth(payload: TokenPayload = Depends(security.access_token_required)):
 
 
 
+#chat_history = [] # {'role' : '*assistant/user*', 'content' : prompt}
+#@app.post('/chat', tags=['Main chat'])
+#def chat(data: PromptSchema, payload: TokenPayload = Depends(security.access_token_required)):
+    #chat_history.append({'role' : 'user', 'content' : data.prompt})
+    #result = get_response(chat_history)           # теперь dict {'text','provider'}
+    #chat_history.append({'role' : 'assistant', 'content' : result})
+    #return {'result': result}
 
-@app.post('/chat', tags=['Main chat'])
-def chat(data: PromptSchema, payload: TokenPayload = Depends(security.access_token_required)):
-    chat_history.append({'role' : 'user', 'content' : data.prompt})
-    result = get_response(chat_history)           # теперь dict {'text','provider'}
-    chat_history.append({'role' : 'assistant', 'content' : result})
-    return {'result': result}
+
+
+@app.post('/chats/{chat_name}/chat', tags=['Chat with AI'])
+def chat(data: PromptSchema, username: str, chat_name: str = "New chat", payload: TokenPayload = Depends(security.access_token_required), db: Session = Depends(get_db))
+    username = payload.sub
+    db_user = db.query(User).filter(User.username==username).first()
+    if not db_user:
+        raise HTTPException(status_code=403, detail='Anauthorise!')
+    db_chat = db.query(Chat).filter(Chat.user_id == db_user.id, Chat.title == chat_name).first()
+    if not db_chat:
+        db_chat = Chat(title=chat_name, user_id=db_user.id)
+        db.add(db_chat)
+        db.commit()
+        db.refresh(db_chat)
+    
+    new_message = Message(sender=db_user, content=data, chat_id=db_chat.id)
+    db.add(new_message)
+    db.commit()
+    db.refresh(new_message)
+
+    chat_history = [el for el in db.query(Message).filter(Message.chat_id == db_chat.id, User.username == db_user.username)]
 
 
 
