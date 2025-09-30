@@ -1,12 +1,10 @@
 from fastapi import FastAPI, Depends, Response, HTTPException
 from gpt import get_response
-
 from auth import security, verify_password, create_access_token, config, hash_password
 from sqlalchemy.orm import Session
 from schemas import PromptSchema, RegisterLoginSchema
 from database import User, Message, Chat, get_db
 from authx import TokenPayload
-
 import uvicorn
 
 
@@ -51,13 +49,9 @@ def login(user: RegisterLoginSchema, response: Response, db: Session = Depends(g
 
 # Chat and other users logic
 
-@app.get('/whatthehell')
-def wth(payload: TokenPayload = Depends(security.access_token_required)):
-    return payload.sub
 
 
-
-@app.post('/chats/{chat_name}/chat', tags=['Chat with AI'])
+@app.post('/chats/chat', tags=['Chat with AI'])
 def chat(data: PromptSchema, chat_name: str = "New chat", payload: TokenPayload = Depends(security.access_token_required), db: Session = Depends(get_db)):
     username = payload.sub
     if username is None:
@@ -100,7 +94,6 @@ def chat(data: PromptSchema, chat_name: str = "New chat", payload: TokenPayload 
 
     # Добавляем результат GPT в историю чата
     #chat_history.append({'role' : 'assistant', 'content' : result})
-
     return {'result': chat_history}
 
 
