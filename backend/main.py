@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends, Response, HTTPException
-from gpt import get_response
+from gpt import get_response, get_chat_name
 from auth import security, verify_password, create_access_token, config, hash_password
 from sqlalchemy.orm import Session
 from schemas import PromptSchema, RegisterLoginSchema
@@ -53,9 +53,12 @@ def login(user: RegisterLoginSchema, response: Response, db: Session = Depends(g
 
 @app.post('/chats/chat', tags=['Chat with AI'])
 def chat(data: PromptSchema, chat_name: str = "New chat", payload: TokenPayload = Depends(security.access_token_required), db: Session = Depends(get_db)):
-    username = payload.sub
-    if username is None:
-        raise HTTPException(status_code=403, detail='Username is None!')
+    try:
+        username = payload.sub
+    except:
+        raise HTTPException(status_code=401, detail='Token is not valid!')
+    if not username:
+        raise HTTPException(status_code=404, detail='Can`t find you!')
     db_user = db.query(User).filter(User.username==username).first()
     if db_user is None:
         raise HTTPException(status_code=404, detail='User is None!')
@@ -65,7 +68,7 @@ def chat(data: PromptSchema, chat_name: str = "New chat", payload: TokenPayload 
         db_chat = Chat(title=chat_name, user_id=db_user.id)
         db.add(db_chat)
         db.commit()
-        db.refresh(db_chat)
+        db.refresh(db_chat) # Maybe later
 
     # Добавляем новое сообщение пользователя в БД
     new_message = Message(sender=db_user.username, content=str(data.prompt), chat_id=db_chat.id)
@@ -75,13 +78,18 @@ def chat(data: PromptSchema, chat_name: str = "New chat", payload: TokenPayload 
 
     # Создаем историю чата, включая только сохраненные сообщения
     chat_history = []
-    messages = db.query(Message).filter(Message.chat_id == db_chat.id).all() #order_by(Message.created_at.desc()).limit(20).all()
+    # Now it is 20, then it will be near 100
+    messages = db.query(Message).filter(Message.chat_id == db_chat.id).order_by(Message.created_at.asc()).limit(20).all()
 
     for message in messages:
         if str(message.sender) == str(db_user.username):
             chat_history.append({'role' : 'user', 'content' : message.content})
         else:
             chat_history.append({'role' : 'assistant', 'content' : message.content})
+    
+    chat_name = str(get_chat_name(chat_history))
+
+
 
     # Получаем ответ от GPT, передав обновленную историю чата
     result = get_response(chat_history)
@@ -94,7 +102,7 @@ def chat(data: PromptSchema, chat_name: str = "New chat", payload: TokenPayload 
 
     # Добавляем результат GPT в историю чата
     #chat_history.append({'role' : 'assistant', 'content' : result})
-    return {'result': chat_history}
+    return {'result': chat_history} # 'chat_title' : chat_name
 
 
 
